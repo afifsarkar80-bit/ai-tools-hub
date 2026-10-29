@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Tools Hub</title>
+<meta name="description" content="A searchable directory of popular AI tools for chat, coding, images, video, audio and writing.">
+<style>
+:root{
+  --bg:#f3f6f4; --surface:#ffffff; --ink:#14201b; --muted:#56655d;
+  --line:#d3dcd7; --accent:#0f6b52; --accent-ink:#ffffff; --chip:#e4ece8;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0f1714; --surface:#17211d; --ink:#e8f0ec; --muted:#9db0a6;
+    --line:#2a3832; --accent:#4fd1a5; --accent-ink:#06201a; --chip:#22302a;}
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:Georgia,"Iowan Old Style","Palatino Linotype",serif;line-height:1.55}
+.wrap{max-width:1080px;margin:0 auto;padding:0 18px}
+header{padding:44px 0 22px}
+h1{font-size:clamp(2rem,6vw,3.4rem);line-height:1.05;margin:0 0 12px;letter-spacing:-.02em}
+header p{margin:0;color:var(--muted);max-width:52ch;font-size:1.08rem}
+.controls{position:sticky;top:0;background:var(--bg);padding:12px 0;z-index:5;border-bottom:1px solid var(--line)}
+.search{width:100%;padding:13px 14px;font:inherit;font-size:1rem;color:var(--ink);
+  background:var(--surface);border:2px solid var(--line);border-radius:8px}
+.search:focus{outline:none;border-color:var(--accent)}
+.filters{display:flex;gap:8px;margin-top:10px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.filters button{flex:0 0 auto;font:inherit;font-size:.95rem;padding:8px 14px;border-radius:999px;
+  border:1px solid var(--line);background:var(--chip);color:var(--ink);cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.count{color:var(--muted);margin:16px 0 10px;font-size:.95rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;padding-bottom:40px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px;
+  display:flex;flex-direction:column;gap:8px}
+.card h2{margin:0;font-size:1.2rem}
+.card p{margin:0;color:var(--muted);font-size:.97rem;flex:1}
+.meta{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.88rem;color:var(--muted)}
+.tag{background:var(--chip);padding:2px 9px;border-radius:999px;color:var(--ink)}
+.visit{display:inline-block;margin-top:4px;padding:9px 12px;text-align:center;text-decoration:none;
+  background:var(--accent);color:var(--accent-ink);border-radius:6px;font-size:.95rem}
+.visit:hover{filter:brightness(1.1)}
+.empty{grid-column:1/-1;padding:30px 0;color:var(--muted)}
+.empty button{font:inherit;margin-left:6px;padding:6px 12px;border-radius:6px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink);cursor:pointer}
+footer{border-top:1px solid var(--line);padding:22px 0 40px;color:var(--muted);font-size:.9rem}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <h1>AI Tools Hub</h1>
+  <p>A short list of well-known AI tools. Search by name or task, or filter by category.</p>
+</header>
+
+<div class="controls">
+  <div class="wrap">
+    <label for="q" class="sr" style="position:absolute;left:-9999px">Search AI tools</label>
+    <input id="q" class="search" type="search" placeholder="Search tools, e.g. “image” or “code”" autocomplete="off">
+    <div class="filters" id="filters" role="group" aria-label="Filter by category"></div>
+  </div>
+</div>
+
+<main class="wrap">
+  <div class="count" id="count" aria-live="polite"></div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<footer class="wrap">
+  Links go to each tool’s official website. Pricing, free tiers and availability change often, so check each site.
+</footer>
+
+<script>
+// To add a tool, add one line here. Categories appear as filter buttons automatically.
+const TOOLS = [
+  {n:"ChatGPT", c:"Chat", u:"https://chatgpt.com", d:"General-purpose AI assistant from OpenAI for writing, analysis and questions.", f:"Free tier"},
+  {n:"Claude", c:"Chat", u:"https://claude.ai", d:"Anthropic’s AI assistant for writing, research, coding and long documents.", f:"Free tier"},
+  {n:"Gemini", c:"Chat", u:"https://gemini.google.com", d:"Google’s AI assistant, connected to Google apps and search.", f:"Free tier"},
+  {n:"Microsoft Copilot", c:"Chat", u:"https://copilot.microsoft.com", d:"Microsoft’s AI assistant for chat, search and image creation.", f:"Free tier"},
+  {n:"Perplexity", c:"Research", u:"https://www.perplexity.ai", d:"Answer engine that searches the web and cites its sources.", f:"Free tier"},
+  {n:"NotebookLM", c:"Research", u:"https://notebooklm.google.com", d:"Upload your documents and ask questions grounded in them.", f:"Free tier"},
+  {n:"GitHub Copilot", c:"Coding", u:"https://github.com/features/copilot", d:"AI code completion and chat inside your editor.", f:"Free tier"},
+  {n:"Cursor", c:"Coding", u:"https://cursor.com", d:"Code editor built around AI-assisted editing and agents.", f:"Free tier"},
+  {n:"Replit", c:"Coding", u:"https://replit.com", d:"Browser-based coding environment with an AI app builder.", f:"Free tier"},
+  {n:"Hugging Face", c:"Coding", u:"https://huggingface.co", d:"Hub for open-source models, datasets and demos. Good for learning ML.", f:"Free"},
+  {n:"Midjourney", c:"Image", u:"https://www.midjourney.com", d:"High-quality AI image generation with a strong artistic style.", f:"Paid"},
+  {n:"Leonardo AI", c:"Image", u:"https://leonardo.ai", d:"Image generation and editing tools for designers and game artists.", f:"Free tier"},
+  {n:"Adobe Firefly", c:"Image", u:"https://www.adobe.com/products/firefly.html", d:"Adobe’s generative AI for images, effects and text.", f:"Free tier"},
+  {n:"Canva Magic Studio", c:"Image", u:"https://www.canva.com/magic/", d:"AI design tools built into Canva for graphics and presentations.", f:"Free tier"},
+  {n:"Runway", c:"Video", u:"https://runwayml.com", d:"AI video generation and editing for creators and filmmakers.", f:"Free tier"},
+  {n:"Pika", c:"Video", u:"https://pika.art", d:"Turn text or images into short AI-generated video clips.", f:"Free tier"},
+  {n:"ElevenLabs", c:"Audio", u:"https://elevenlabs.io", d:"Realistic text-to-speech, voice cloning and dubbing.", f:"Free tier"},
+  {n:"Suno", c:"Audio", u:"https://suno.com", d:"Generate full songs with vocals from a text prompt.", f:"Free tier"},
+  {n:"Otter.ai", c:"Audio", u:"https://otter.ai", d:"Meeting recording, live transcription and summaries.", f:"Free tier"},
+  {n:"Grammarly", c:"Writing", u:"https://www.grammarly.com", d:"Grammar, tone and clarity suggestions as you write.", f:"Free tier"},
+  {n:"DeepL", c:"Writing", u:"https://www.deepl.com", d:"Accurate AI translation and rewriting across many languages.", f:"Free tier"},
+  {n:"Notion AI", c:"Productivity", u:"https://www.notion.com/product/ai", d:"AI writing, search and summaries inside your Notion workspace.", f:"Paid add-on"}
+];
+
+const grid = document.getElementById("grid");
+const countEl = document.getElementById("count");
+const filtersEl = document.getElementById("filters");
+const input = document.getElementById("q");
+let active = "All";
+
+const cats = ["All", ...new Set(TOOLS.map(t => t.c))];
+cats.forEach(cat => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.textContent = cat;
+  b.setAttribute("aria-pressed", cat === active);
+  b.addEventListener("click", () => {
+    active = cat;
+    filtersEl.querySelectorAll("button").forEach(x =>
+      x.setAttribute("aria-pressed", x === b));
+    render();
+  });
+  filtersEl.appendChild(b);
+});
+
+function el(tag, cls, text){
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text) e.textContent = text;
+  return e;
+}
+
+function render(){
+  const q = input.value.trim().toLowerCase();
+  const list = TOOLS.filter(t =>
+    (active === "All" || t.c === active) &&
+    (!q || (t.n + " " + t.c + " " + t.d).toLowerCase().includes(q)));
+  grid.textContent = "";
+  countEl.textContent = list.length + (list.length === 1 ? " tool" : " tools");
+  if (!list.length){
+    const e = el("div", "empty", "No tools match your search.");
+    const btn = el("button", "", "Clear search and filter");
+    btn.type = "button";
+    btn.addEventListener("click", () => { input.value = ""; filtersEl.firstChild.click(); });
+    e.appendChild(btn);
+    grid.appendChild(e);
+    return;
+  }
+  list.forEach(t => {
+    const card = el("article", "card");
+    card.appendChild(el("h2", "", t.n));
+    card.appendChild(el("p", "", t.d));
+    const meta = el("div", "meta");
+    meta.appendChild(el("span", "tag", t.c));
+    meta.appendChild(el("span", "", t.f));
+    card.appendChild(meta);
+    const a = el("a", "visit", "Visit " + t.n);
+    a.href = t.u;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    card.appendChild(a);
+    grid.appendChild(card);
+  });
+}
+
+input.addEventListener("input", render);
+render();
+</script>
+</body>
+</html>
